@@ -9,60 +9,91 @@
   <body>
     <header>
       <h1>AI Voting System</h1>
+      <div class="controls" style="justify-content:center;">
+        <button id="btn-theme" title="Toggle theme">Toggle Theme</button>
+        <button id="font-dec" title="Smaller text">A-</button>
+        <button id="font-inc" title="Larger text">A+</button>
+        <button id="btn-voice" title="Toggle voice guidance">Voice: On</button>
+        <button id="btn-kiosk" title="Enter fullscreen kiosk mode">Kiosk Mode</button>
+      </div>
     </header>
 
     <main>
       <section class="panel">
-        <h2>Webcam</h2>
-        <video id="video" autoplay playsinline></video>
-        <canvas id="canvas" width="640" height="480" hidden></canvas>
-        <div class="controls">
-          <button id="btn-capture">Capture Snapshot</button>
-          <button id="btn-predict">Predict Identity</button>
-        </div>
-        <div class="row">
-          <label>Last label:</label>
-          <span id="label">-</span>
+        <h2>Voting Wizard</h2>
+        <div class="wizard">
+          <div class="steps">
+            <div class="step active" data-step="1">1. Identify</div>
+            <div class="step" data-step="2">2. Verify</div>
+            <div class="step" data-step="3">3. Choose</div>
+            <div class="step" data-step="4">4. Confirm</div>
+          </div>
+          <div class="step-content" id="step-1">
+            <p>Center your face in the frame and press Identify.</p>
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas" width="640" height="480" hidden></canvas>
+            <div class="controls">
+              <button id="btn-predict">Identify</button>
+              <span class="muted">Detected ID:</span> <strong id="label">-</strong>
+            </div>
+          </div>
+          <div class="step-content" id="step-2" hidden>
+            <p>Enter or confirm your details.</p>
+            <div class="row">
+              <label for="aadhar">Aadhar number</label>
+              <input id="aadhar" placeholder="Enter aadhar" />
+            </div>
+            <div class="row">
+              <label for="name">Name</label>
+              <input id="name" placeholder="Enter your name" />
+            </div>
+            <div class="controls">
+              <button id="btn-next-2">Continue</button>
+            </div>
+            <details>
+              <summary>New user? Quick face registration</summary>
+              <div class="row">
+                <label for="framesTotal">Frames to collect (max 5)</label>
+                <input id="framesTotal" type="number" value="5" min="1" max="5" />
+              </div>
+              <div class="row">
+                <label for="everyN">Capture every N frames</label>
+                <input id="everyN" type="number" value="2" min="1" max="10" />
+              </div>
+              <div class="controls">
+                <button id="btn-register">Start Registration</button>
+                <small id="reg-status"></small>
+              </div>
+            </details>
+          </div>
+          <div class="step-content" id="step-3" hidden>
+            <p>Select your party.</p>
+            <div class="row">
+              <label for="party">Party</label>
+              <select id="party"></select>
+            </div>
+            <div class="controls">
+              <button id="btn-next-3">Continue</button>
+            </div>
+          </div>
+          <div class="step-content" id="step-4" hidden>
+            <p>Review your selection and submit.</p>
+            <div class="row"><strong>ID:</strong> <span id="confirm-id">-</span></div>
+            <div class="row"><strong>Party:</strong> <span id="confirm-party">-</span></div>
+            <div class="controls">
+              <button id="btn-back-4">Back</button>
+              <button id="btn-vote">Submit Vote</button>
+              <small id="vote-status"></small>
+            </div>
+          </div>
         </div>
       </section>
 
       <section class="panel">
-        <h2>Register Faces</h2>
-        <div class="row">
-          <label for="aadhar">Aadhar number</label>
-          <input id="aadhar" placeholder="Enter aadhar" />
-        </div>
-        <div class="row">
-          <label for="name">Name</label>
-          <input id="name" placeholder="Enter your name" />
-        </div>
-        <div class="row">
-          <label for="framesTotal">Frames to collect (max 5)</label>
-          <input id="framesTotal" type="number" value="5" min="1" max="5" />
-        </div>
-        <div class="row">
-          <label for="everyN">Capture every N frames</label>
-          <input id="everyN" type="number" value="2" min="1" max="10" />
-        </div>
-        <div class="controls">
-          <button id="btn-register">Start Registration</button>
-        </div>
-        <div class="row"><small id="reg-status"></small></div>
+        <h2>Help</h2>
+        <p>Follow the steps. If face ID fails, you can type your Aadhar and proceed.</p>
       </section>
 
-      <section class="panel">
-        <h2>Vote</h2>
-        <div class="row">
-          <label for="party">Select party</label>
-          <select id="party"></select>
-        </div>
-        <div class="controls">
-          <button id="btn-vote">Cast Vote</button>
-        </div>
-        <div class="row"><small id="vote-status"></small></div>
-      </section>
-
-      
     </main>
 
     <footer>
@@ -72,6 +103,7 @@
     </footer>
 
     <script src="/app.js"></script>
+    <div id="toasts"></div>
   </body>
   </html>
 

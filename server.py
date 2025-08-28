@@ -25,6 +25,7 @@ FACES_PATH = os.path.join(DATA_DIR, "faces_data.pkl")
 NAMES_PATH = os.path.join(DATA_DIR, "names.pkl")
 VOTES_CSV = "Votes.csv"
 PROFILES_JSON = os.path.join(DATA_DIR, "profiles.json")
+AUDIT_LOG = os.path.join(DATA_DIR, "audit.log")
 
 USERS = {
     "nivank": "nivankclaps",
@@ -80,6 +81,25 @@ def save_profiles(profiles):
     import json
     with open(PROFILES_JSON, "w", encoding="utf-8") as f:
         json.dump(profiles, f, ensure_ascii=False, indent=2)
+
+
+def append_audit(event: str, detail: dict | None = None) -> None:
+    ensure_data_dir()
+    try:
+        import json
+        now = datetime.utcnow().isoformat() + "Z"
+        user = session.get("admin_user")
+        payload = {
+            "ts": now,
+            "user": user,
+            "event": event,
+            "detail": detail or {},
+        }
+        with open(AUDIT_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:
+        # Best-effort; do not break flow
+        pass
 
 
 def decode_base64_image(data_url: str):
@@ -189,6 +209,7 @@ def register_face():
         with open(FACES_PATH, "wb") as f:
             pickle.dump(faces, f)
 
+    append_audit("register", {"aadhar": str(aadhar), "frames": len(collected)})
     return jsonify({"ok": True, "added": len(collected)})
 
 
@@ -254,6 +275,7 @@ def cast_vote():
         if not exists:
             w.writerow(["NAME", "VOTE", "DATE", "TIME"])
         w.writerow([voter, party, date, timestamp])
+    append_audit("vote_cast", {"voter": str(voter), "party": str(party), "date": date, "time": timestamp})
     return jsonify({"ok": True})
 
 
@@ -276,6 +298,7 @@ def reset_faces():
                 removed.append(os.path.basename(path))
         except Exception as e:
             return jsonify({"error": "delete_failed", "detail": str(e)}), 500
+    append_audit("reset_faces", {"removed": removed})
     return jsonify({"ok": True, "removed": removed})
 
 
@@ -346,6 +369,7 @@ def admin_export():
     bio.seek(0)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"voting_export_{ts}.xlsx"
+    append_audit("export")
     return send_file(bio, as_attachment=True, download_name=filename, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 
@@ -416,6 +440,7 @@ def admin_delete_vote(index: int):
         w.writerow(header)
         for row in data_rows:
             w.writerow(row)
+    append_audit("delete_vote", {"index": index})
     return jsonify({"ok": True})
 
 
@@ -431,6 +456,7 @@ def admin_reset_votes():
     with open(VOTES_CSV, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(header)
+    append_audit("reset_votes")
     return jsonify({"ok": True})
 
 
@@ -441,6 +467,7 @@ def admin_login():
     password = str(data.get("password", ""))
     if USERS.get(username) == password:
         session["admin_user"] = username
+        append_audit("admin_login", {"user": username})
         return jsonify({"ok": True, "user": username})
     return jsonify({"error": "invalid_credentials"}), 401
 
@@ -448,6 +475,7 @@ def admin_login():
 @app.route("/api/admin/logout", methods=["POST"])
 def admin_logout():
     session.pop("admin_user", None)
+    append_audit("admin_logout")
     return jsonify({"ok": True})
 
 
@@ -455,6 +483,43 @@ def admin_logout():
 def admin_me():
     user = session.get("admin_user")
     return jsonify({"user": user})
+
+
+@app.route("/api/admin/audit", methods=["GET"])
+def admin_audit():
+    if not require_admin():
+        return jsonify({"error": "unauthorized"}), 401
+    ensure_data_dir()
+    rows = []
+    if os.path.exists(AUDIT_LOG):
+        try:
+            import json
+            with open(AUDIT_LOG, "r", encoding="utf-8") as f:
+                for line in f.readlines()[-200:]:
+                    try:
+                        rows.append(json.loads(line))
+                    except Exception:
+                        continue
+        except Exception:
+            pass
+    return jsonify({"rows": rows[-100:]})
+
+
+def compute_votes_checksum() -> str:
+    import hashlib
+    h = hashlib.sha256()
+    if not os.path.exists(VOTES_CSV):
+        return h.hexdigest()
+    with open(VOTES_CSV, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+@app.route("/api/integrity", methods=["GET"])
+def integrity():
+    checksum = compute_votes_checksum()
+    return jsonify({"votesChecksum": checksum})
 
 
 if __name__ == "__main__":

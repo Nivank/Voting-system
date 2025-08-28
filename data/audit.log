@@ -1,0 +1,5 @@
+{"ts": "2025-08-28T13:53:34.962570Z", "user": "nivank", "event": "register", "detail": {"aadhar": "695", "frames": 5}}
+{"ts": "2025-08-28T13:54:43.505310Z", "user": null, "event": "admin_logout", "detail": {}}
+{"ts": "2025-08-28T13:55:05.588142Z", "user": "superior", "event": "admin_login", "detail": {"user": "superior"}}
+{"ts": "2025-08-28T13:55:12.644120Z", "user": "superior", "event": "reset_votes", "detail": {}}
+{"ts": "2025-08-28T13:55:16.713916Z", "user": "superior", "event": "reset_faces", "detail": {"removed": ["faces_data.pkl", "names.pkl"]}}

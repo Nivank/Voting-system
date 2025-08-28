@@ -15,3 +15,15 @@ input, select{ flex:1; background:#0b1220; color:var(--text); border:1px solid #
 small{ color:var(--muted); }
 
 
+.wizard{ display:flex; flex-direction:column; gap:12px; }
+.steps{ display:flex; gap:8px; flex-wrap:wrap; }
+.step{ padding:6px 10px; border-radius:999px; background:#0b1220; border:1px solid #1f2937; color:#9ca3af; font-size:12px; }
+.step.active{ background:#064e3b; color:#d1fae5; border-color:#065f46; }
+.step-content{ animation: fade .25s ease-in; }
+@keyframes fade{ from{ opacity:.5; transform: translateY(4px);} to{ opacity:1; transform:none; } }
+.muted{ color:var(--muted); }
+
+#toasts{ position: fixed; bottom: 16px; right: 16px; display:flex; flex-direction:column; gap:8px; z-index: 1000; }
+.toast{ background:#0b1220; color:#e5e7eb; border:1px solid #1f2937; padding:10px 14px; border-radius:8px; box-shadow:0 10px 20px rgba(0,0,0,.35); animation: fade .25s ease-in; }
+
+.theme-light{ --bg:#f8fafc; --panel:#ffffff; --text:#0f172a; --muted:#475569; --accent:#16a34a; }

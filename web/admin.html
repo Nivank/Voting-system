@@ -65,6 +65,12 @@
           <small id="votes-status"></small>
         </div>
       </section>
+
+      <section class="panel">
+        <h2>Audit Log</h2>
+        <p>Most recent actions appear below.</p>
+        <ul id="audit-list"></ul>
+      </section>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -141,6 +147,14 @@
           });
         });
       }
+      async function loadAudit(){
+        const me = await (await fetch('/api/admin/me')).json();
+        if (!me.user) return;
+        const js = await (await fetch('/api/admin/audit')).json();
+        const list = document.getElementById('audit-list');
+        if (!list) return;
+        list.innerHTML = (js.rows||[]).reverse().map(r => `<li>${r.ts} [${r.user||'-'}] ${r.event}</li>`).join('');
+      }
       document.getElementById('reset-votes').addEventListener('click', async () => {
         const me = await (await fetch('/api/admin/me')).json();
         if (!me.user) { alert('Login first'); return; }
@@ -157,6 +171,7 @@
       requireAuth();
       loadStats();
       loadVotes();
+      loadAudit();
     </script>
   </body>
   </html>
