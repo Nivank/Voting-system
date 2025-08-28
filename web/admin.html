@@ -47,6 +47,23 @@
       </section>
 
       <section class="panel">
+        <h2>Register Voter Manually</h2>
+        <div class="row"><label>Aadhar</label><input id="adm-aadhar" /></div>
+        <div class="row"><label>Name</label><input id="adm-name" /></div>
+        <div class="row"><label>Photos (minimum 4, max 5)</label><input id="adm-photos" type="file" accept="image/*" multiple /></div>
+        <div class="controls"><button id="adm-register">Upload & Register</button><small id="adm-reg-status"></small></div>
+      </section>
+
+      <section class="panel">
+        <h2>Verify User</h2>
+        <div class="row"><label>Aadhar</label><input id="ver-aadhar" /></div>
+        <div class="row"><label>Name</label><input id="ver-name" /></div>
+        <div class="row"><label>Photo</label><input id="ver-photo" type="file" accept="image/*" /></div>
+        <div class="controls"><button id="ver-run">Verify</button><small id="ver-status"></small></div>
+        <ul id="ver-result"></ul>
+      </section>
+
+      <section class="panel">
         <h2>Dashboard</h2>
         <div class="row"><strong>Total Registered IDs:</strong> <span id="stat-registered">0</span></div>
         <div class="row"><strong>Total Votes:</strong> <span id="stat-votes">0</span></div>
@@ -172,6 +189,93 @@
       loadStats();
       loadVotes();
       loadAudit();
+
+      // Admin manual register
+      document.getElementById('adm-register').addEventListener('click', async () => {
+        const me = await (await fetch('/api/admin/me')).json();
+        if (!me.user) { alert('Login first'); return; }
+        const aadhar = document.getElementById('adm-aadhar').value.trim();
+        const name = document.getElementById('adm-name').value.trim();
+        const files = Array.from(document.getElementById('adm-photos').files || []);
+        const status = document.getElementById('adm-reg-status');
+        if (!aadhar || !name || files.length < 4) { 
+          alert('Aadhar, name, and minimum 4 photos are required'); 
+          return; 
+        }
+        if (files.length > 5) {
+          alert('Maximum 5 photos allowed');
+          return;
+        }
+        
+        // Validate against registry first
+        try {
+          const validation = await (await fetch('/api/validate-registry', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ aadhar, name }) 
+          })).json();
+          
+          if (!validation.valid) {
+            if (validation.error === 'not_in_registry') {
+              alert('Aadhar not found in registry');
+              return;
+            } else if (validation.error === 'name_mismatch') {
+              alert('Name does not match registry');
+              return;
+            }
+            alert(validation.message || 'Validation failed');
+            return;
+          }
+        } catch (e) {
+          alert('Registry validation failed');
+          return;
+        }
+        
+        status.textContent = 'Processing images...';
+        const images = await Promise.all(files.map(f => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(f); })));
+        status.textContent = 'Uploading...';
+        const resp = await fetch('/api/admin/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aadhar, name, images }) });
+        const js = await resp.json();
+        if (!resp.ok) { 
+          if (js.error === 'name_mismatch') {
+            alert('Name does not match registry');
+          } else {
+            alert(js.error || 'Failed'); 
+          }
+          status.textContent = 'Failed'; 
+          return; 
+        }
+        status.textContent = `Registered ${js.added} frames for ${aadhar}`;
+        loadStats();
+      });
+
+      // Admin verify
+      document.getElementById('ver-run').addEventListener('click', async () => {
+        const me = await (await fetch('/api/admin/me')).json();
+        if (!me.user) { alert('Login first'); return; }
+        const aadhar = document.getElementById('ver-aadhar').value.trim();
+        const name = document.getElementById('ver-name').value.trim();
+        const file = document.getElementById('ver-photo').files[0];
+        const status = document.getElementById('ver-status');
+        const resultEl = document.getElementById('ver-result');
+        if (!aadhar || !name || !file) { alert('Enter aadhar, name, and choose a photo'); return; }
+        status.textContent = 'Processing photo...';
+        const b64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); });
+        status.textContent = 'Verifying...';
+        const resp = await fetch('/api/admin/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aadhar, name, image: b64 }) });
+        const js = await resp.json();
+        if (!resp.ok) { status.textContent = js.error || 'Failed'; return; }
+        status.textContent = 'Done';
+        resultEl.innerHTML = `
+          <li>In Registry: ${js.registry ? 'Yes' : 'No'}</li>
+          <li>Registry Name Match: ${js.registryNameMatch ? 'Yes' : 'No'}</li>
+          <li>Registered in System: ${js.exists ? 'Yes' : 'No'}</li>
+          <li>Profile Name Match: ${js.nameMatch ? 'Yes' : 'No'}</li>
+          <li>Face Match: ${js.faceMatch ? 'Yes' : 'No'}</li>
+          <li>Voted: ${js.voted ? 'Yes' : 'No'}</li>
+          ${js.voted ? `<li>Vote time: ${js.voteDate} ${js.voteTime}</li>` : ''}
+        `;
+      });
     </script>
   </body>
   </html>

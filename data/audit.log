@@ -3,3 +3,60 @@
 {"ts": "2025-08-28T13:55:05.588142Z", "user": "superior", "event": "admin_login", "detail": {"user": "superior"}}
 {"ts": "2025-08-28T13:55:12.644120Z", "user": "superior", "event": "reset_votes", "detail": {}}
 {"ts": "2025-08-28T13:55:16.713916Z", "user": "superior", "event": "reset_faces", "detail": {"removed": ["faces_data.pkl", "names.pkl"]}}
+{"ts": "2025-08-28T14:05:23.605577Z", "user": "superior", "event": "register", "detail": {"aadhar": "78745", "frames": 5}}
+{"ts": "2025-08-28T14:05:37.341244Z", "user": "superior", "event": "vote_cast", "detail": {"voter": "78745", "party": "NOTA", "date": "28-08-2025", "time": "19:35-37"}}
+{"ts": "2025-08-28T14:06:08.044086Z", "user": "superior", "event": "register", "detail": {"aadhar": "78745", "frames": 5}}
+{"ts": "2025-08-28T14:13:07.000708Z", "user": "superior", "event": "vote_cast", "detail": {"voter": "445565", "party": "BJP", "date": "28-08-2025", "time": "19:43-06"}}
+{"ts": "2025-08-28T14:14:12.563565Z", "user": "superior", "event": "vote_cast", "detail": {"voter": "45454", "party": "BJP", "date": "28-08-2025", "time": "19:44-12"}}
+{"ts": "2025-08-28T14:14:56.458922Z", "user": "superior", "event": "vote_cast", "detail": {"voter": "6++", "party": "BJP", "date": "28-08-2025", "time": "19:44-56"}}
+{"ts": "2025-08-28T14:22:27.651226Z", "user": "superior", "event": "vote_cast", "detail": {"voter": "529984269", "party": "CONGRESS", "date": "28-08-2025", "time": "19:52-27"}}
+{"ts": "2025-08-28T14:23:14.582662Z", "user": "superior", "event": "vote_cast", "detail": {"voter": "fvetvetvrt", "party": "BJP", "date": "28-08-2025", "time": "19:53-14"}}
+{"ts": "2025-08-28T14:34:16.379494Z", "user": "superior", "event": "reset_faces", "detail": {"removed": ["faces_data.pkl", "names.pkl"]}}
+{"ts": "2025-08-28T14:34:22.893775Z", "user": "superior", "event": "reset_votes", "detail": {}}
+{"ts": "2025-08-28T14:34:32.198081Z", "user": "superior", "event": "vote_cast", "detail": {"voter": "78745", "party": "NOTA", "date": "28-08-2025", "time": "20:04-32"}}
+{"ts": "2025-08-28T14:35:51.738051Z", "user": "superior", "event": "vote_cast", "detail": {"voter": "ytd", "party": "NOTA", "date": "28-08-2025", "time": "20:05-51"}}
+{"ts": "2025-08-28T14:39:21.095010Z", "user": "superior", "event": "register", "detail": {"aadhar": "166", "frames": 5}}
+{"ts": "2025-08-28T14:39:27.690281Z", "user": "superior", "event": "vote_cast", "detail": {"voter": "166", "party": "CONGRESS", "date": "28-08-2025", "time": "20:09-27"}}
+{"ts": "2025-08-28T14:47:16.752894Z", "user": "superior", "event": "reset_faces", "detail": {"removed": ["faces_data.pkl", "names.pkl"]}}
+{"ts": "2025-08-28T14:47:20.535574Z", "user": "superior", "event": "reset_votes", "detail": {}}
+{"ts": "2025-08-28T14:48:29.716685Z", "user": "superior", "event": "register", "detail": {"aadhar": "7894", "frames": 5}}
+{"ts": "2025-08-28T14:48:35.038292Z", "user": "superior", "event": "vote_cast", "detail": {"voter": "7894", "party": "NOTA", "date": "28-08-2025", "time": "20:18-35"}}
+{"ts": "2025-08-28T14:50:11.574264Z", "user": null, "event": "admin_logout", "detail": {}}
+{"ts": "2025-08-28T14:50:37.143307Z", "user": null, "event": "vote_cast", "detail": {"voter": "78745", "party": "BJP", "date": "28-08-2025", "time": "20:20-37"}}
+{"ts": "2025-08-28T14:50:59.263606Z", "user": "nivank", "event": "admin_login", "detail": {"user": "nivank"}}
+{"ts": "2025-08-28T14:51:16.400612Z", "user": "nivank", "event": "export", "detail": {}}
+{"ts": "2025-08-28T14:52:27.577711Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "99", "party": "NOTA", "date": "28-08-2025", "time": "20:22-27"}}
+{"ts": "2025-08-28T14:54:09.276588Z", "user": "nivank", "event": "admin_register", "detail": {"aadhar": "585", "frames": 1}}
+{"ts": "2025-08-28T14:58:06.750023Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "2323", "party": "AAP", "date": "28-08-2025", "time": "20:28-06"}}
+{"ts": "2025-08-28T14:58:30.252293Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "frv", "name": "fvetr", "exists": false, "name_match": false, "predicted": "7894", "voted": false}}
+{"ts": "2025-08-28T14:58:48.120107Z", "user": "nivank", "event": "admin_register", "detail": {"aadhar": "tbr", "frames": 1}}
+{"ts": "2025-08-28T14:59:10.744345Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "dcwr", "name": "ecw4", "exists": false, "name_match": false, "predicted": "7894", "voted": false}}
+{"ts": "2025-08-28T14:59:21.886275Z", "user": "nivank", "event": "admin_register", "detail": {"aadhar": "ve5", "frames": 1}}
+{"ts": "2025-08-28T14:59:31.886907Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "dcwr", "name": "ecw4", "exists": false, "name_match": false, "predicted": "7894", "voted": false}}
+{"ts": "2025-08-28T14:59:34.305427Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "dcwr", "name": "ecw4", "exists": false, "name_match": false, "predicted": "7894", "voted": false}}
+{"ts": "2025-08-28T14:59:34.418905Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "dcwr", "name": "ecw4", "exists": false, "name_match": false, "predicted": "7894", "voted": false}}
+{"ts": "2025-08-28T14:59:34.672760Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "dcwr", "name": "ecw4", "exists": false, "name_match": false, "predicted": "7894", "voted": false}}
+{"ts": "2025-08-28T14:59:54.040942Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "yrs6", "name": "g4w5", "exists": false, "name_match": false, "predicted": "7894", "voted": false}}
+{"ts": "2025-08-28T15:00:03.166933Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "yrs6", "name": "g4w5", "exists": false, "name_match": false, "predicted": "7894", "voted": false}}
+{"ts": "2025-08-28T15:00:05.931391Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "yrs6", "name": "g4w5", "exists": false, "name_match": false, "predicted": "7894", "voted": false}}
+{"ts": "2025-08-28T15:00:14.625391Z", "user": "nivank", "event": "admin_register", "detail": {"aadhar": "g6", "frames": 1}}
+{"ts": "2025-08-28T15:00:16.380326Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "yrs6", "name": "g4w5", "exists": false, "name_match": false, "predicted": "585", "voted": false}}
+{"ts": "2025-08-28T15:00:30.312869Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "fger", "name": "g5", "exists": false, "name_match": false, "predicted": "585", "voted": false}}
+{"ts": "2025-08-28T15:02:28.051799Z", "user": "nivank", "event": "admin_register", "detail": {"aadhar": "9876", "frames": 1}}
+{"ts": "2025-08-28T15:02:44.297917Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "9876", "name": "min", "exists": true, "name_match": true, "predicted": "585", "voted": false}}
+{"ts": "2025-08-28T15:03:04.863308Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "9876", "name": "min", "exists": true, "name_match": true, "predicted": "585", "voted": false}}
+{"ts": "2025-08-28T15:03:29.871913Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "9876", "party": "CONGRESS", "date": "28-08-2025", "time": "20:33-29"}}
+{"ts": "2025-08-28T15:04:05.678041Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "9876", "name": "min", "exists": true, "name_match": true, "predicted": "585", "voted": true}}
+{"ts": "2025-08-28T15:04:49.639052Z", "user": "nivank", "event": "admin_register", "detail": {"aadhar": "789", "frames": 4}}
+{"ts": "2025-08-28T15:05:54.109734Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "789", "name": "min", "exists": true, "name_match": true, "predicted": "789", "voted": false}}
+{"ts": "2025-08-28T15:10:50.409919Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "789", "party": "BJP", "date": "28-08-2025", "time": "20:40-50"}}
+{"ts": "2025-08-28T15:11:23.140505Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "987", "party": "BJP", "date": "28-08-2025", "time": "20:41-23"}}
+{"ts": "2025-08-28T15:36:30.896364Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "199791918131", "party": "BJP", "date": "28-08-2025", "time": "21:06-30"}}
+{"ts": "2025-08-28T15:37:53.743060Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "199791918131", "name": "Alia Iyer", "exists": false, "name_match": false, "registry": true, "registry_name_match": true, "predicted": "789", "voted": true}}
+{"ts": "2025-08-28T15:38:35.395436Z", "user": "nivank", "event": "admin_register", "detail": {"aadhar": "199791918131", "frames": 1}}
+{"ts": "2025-08-28T15:38:54.506548Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "tftrtv", "name": "rf4f", "exists": false, "name_match": false, "registry": false, "registry_name_match": false, "predicted": "789", "voted": false}}
+{"ts": "2025-08-28T15:50:31.053513Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "gygg", "party": "BJP", "date": "28-08-2025", "time": "21:20-31"}}
+{"ts": "2025-08-28T15:51:21.152507Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "hg", "party": "NOTA", "date": "28-08-2025", "time": "21:21-21"}}
+{"ts": "2025-08-28T16:05:25.159397Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "dfs", "party": "BJP", "date": "28-08-2025", "time": "21:35-25"}}
+{"ts": "2025-08-28T16:05:42.715857Z", "user": "nivank", "event": "reset_faces", "detail": {"removed": ["faces_data.pkl", "names.pkl"]}}
+{"ts": "2025-08-28T16:06:15.942645Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "45454", "party": "CONGRESS", "date": "28-08-2025", "time": "21:36-15"}}

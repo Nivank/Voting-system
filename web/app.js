@@ -10,22 +10,23 @@ const partyEl = document.getElementById('party');
 const voteStatusEl = document.getElementById('vote-status');
 const confirmIdEl = document.getElementById('confirm-id');
 const confirmPartyEl = document.getElementById('confirm-party');
+const confirmNameEl = document.getElementById('confirm-name');
 const btnTheme = document.getElementById('btn-theme');
 const btnFontInc = document.getElementById('font-inc');
 const btnFontDec = document.getElementById('font-dec');
-const btnVoice = document.getElementById('btn-voice');
 const btnKiosk = document.getElementById('btn-kiosk');
 const toasts = document.getElementById('toasts');
-const btnNew = document.getElementById('btn-new');
+const videoReg = document.getElementById('video-reg');
 
 let lastLabel = null;
-let voiceOn = true;
 let inactivityTimer = null;
+let capturedImages = [];
 
 async function init() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
     video.srcObject = stream;
+    if (videoReg) videoReg.srcObject = stream;
   } catch (e) {
     alert('Could not access webcam: ' + e.message);
   }
@@ -35,15 +36,24 @@ async function init() {
       partyEl.innerHTML = cfg.parties.map(p => `<option value="${p}">${p}</option>`).join('');
     }
   } catch (e) {}
-  speak('Welcome. Step one: Identify yourself and press Identify.');
+  // If Aadhar typed manually, check registry quickly
+  aadharEl?.addEventListener('change', async () => {
+    const id = aadharEl.value.trim();
+    if (!id) return;
+    try {
+      const reg = await (await fetch(`/api/registry/${encodeURIComponent(id)}`)).json();
+      if (!reg.registry) toast('Aadhar not found in registry');
+      if (reg.registryName && !nameEl.value) nameEl.value = reg.registryName;
+    } catch (e) {}
+  });
 }
 
-function snapshotDataUrl() {
-  const w = video.videoWidth || 640;
-  const h = video.videoHeight || 480;
+function snapshotDataUrl(src = video) {
+  const w = (src || video).videoWidth || 640;
+  const h = (src || video).videoHeight || 480;
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, w, h);
+  ctx.drawImage(src || video, 0, 0, w, h);
   return canvas.toDataURL('image/jpeg', 0.9);
 }
 
@@ -56,9 +66,7 @@ document.getElementById('btn-predict').addEventListener('click', async () => {
     if (!res.ok) {
       if (js.error === 'no face detected' || js.error === 'no training data') {
         toast('Could not identify. You can register as a new user.');
-        speak('We could not identify you. You can register as a new user.');
         goToStep(2);
-        expandRegistration();
         return;
       }
       throw new Error(js.error || 'Prediction failed');
@@ -66,38 +74,95 @@ document.getElementById('btn-predict').addEventListener('click', async () => {
     lastLabel = js.label;
     labelEl.textContent = js.label;
     aadharEl.value = js.label;
-    goToStep(2);
+    // Try to fetch profile to auto-fill name
+    try {
+      const prof = await (await fetch(`/api/profile/${encodeURIComponent(js.label)}`)).json();
+      if (prof?.profile?.name) nameEl.value = prof.profile.name;
+    } catch (e) {}
+    goToStep(3);
     toast('Identified as ' + js.label);
-    speak('Identification complete. Please verify your details.');
   } catch (e) {
     labelEl.textContent = '-';
     toast(e.message);
   }
 });
 
-document.getElementById('btn-register').addEventListener('click', async () => {
-  const aadhar = aadharEl.value.trim();
+document.getElementById('btn-capture-faces')?.addEventListener('click', async () => {
   const framesTotal = Math.max(1, Math.min(5, parseInt(framesTotalEl.value || '5', 10)));
   const everyN = Math.max(1, Math.min(10, parseInt(everyNEl.value || '2', 10)));
-  if (!aadhar) return alert('Enter aadhar number first');
-
-  regStatusEl.textContent = 'Collecting images...';
-  const images = [];
+  regStatusEl.textContent = 'Capturing images...';
+  capturedImages = [];
   let collected = 0, i = 0;
   while (collected < framesTotal) {
     if (i % everyN === 0) {
-      images.push(snapshotDataUrl());
+      capturedImages.push(snapshotDataUrl(videoReg || video));
       collected++;
     }
     i++;
     await new Promise(r => setTimeout(r, 80));
   }
+  regStatusEl.textContent = `Captured ${capturedImages.length} frames.`;
+  const nextBtn = document.getElementById('to-step-3');
+  if (nextBtn) nextBtn.disabled = capturedImages.length === 0;
+});
+
+document.getElementById('to-step-3')?.addEventListener('click', () => {
+  if (!capturedImages.length) { toast('Capture faces first'); return; }
+  goToStep(3);
+});
+
+document.getElementById('btn-register')?.addEventListener('click', async () => {
+  const aadhar = aadharEl.value.trim();
+  if (!aadhar) return alert('Enter aadhar number first');
+  if (!capturedImages.length) { toast('Please capture your face first'); return; }
+  if (!/^\d{4,}$/.test(aadhar)) { toast('Enter numeric Aadhar'); return; }
+  const rawName = nameEl.value.trim();
+  if (!/^[A-Za-z ]{2,}$/.test(rawName)) { toast('Name must contain letters and spaces only'); return; }
+
+  // Validate against registry before proceeding
+  try {
+    const validation = await (await fetch('/api/validate-registry', { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ aadhar, name: rawName }) 
+    })).json();
+    
+    if (!validation.valid) {
+      if (validation.error === 'not_in_registry') {
+        toast('Aadhar not found in registry. Returning to face detection.');
+        regStatusEl.textContent = 'Aadhar not in registry';
+        returnToFaceDetection();
+        return;
+      } else if (validation.error === 'name_mismatch') {
+        toast('Name does not match registry. Returning to face detection.');
+        regStatusEl.textContent = 'Name mismatch with registry';
+        returnToFaceDetection();
+        return;
+      }
+      toast(validation.message || 'Validation failed');
+      regStatusEl.textContent = 'Validation failed';
+      returnToFaceDetection();
+      return;
+    }
+  } catch (e) {
+    toast('Registry validation failed. Returning to face detection.');
+    regStatusEl.textContent = 'Registry validation failed';
+    returnToFaceDetection();
+    return;
+  }
+
   regStatusEl.textContent = 'Uploading...';
   try {
-    const name = nameEl.value.trim();
+    const name = rawName;
+    const images = capturedImages;
     const res = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aadhar, name, images }) });
     const js = await res.json();
     if (!res.ok) {
+      if (js?.error === 'already_registered') {
+        regStatusEl.textContent = 'This Aadhar is already registered. Please verify instead.';
+        toast('Already registered. Verification required.');
+        return;
+      }
       if (js?.error === 'duplicate_face') {
         regStatusEl.textContent = `This face seems registered to ${js.registered_to}.`;
         alert('Duplicate: already registered to ' + js.registered_to);
@@ -106,9 +171,7 @@ document.getElementById('btn-register').addEventListener('click', async () => {
       throw new Error(js.error || 'Registration failed');
     }
     regStatusEl.textContent = `Registered ${js.added} frames for ${aadhar}`;
-    goToStep(3);
-    toast('Registration successful');
-    speak('Registration successful. Please choose your party.');
+    toast('Registration successful. Review and continue.');
   } catch (e) {
     regStatusEl.textContent = e.message;
     alert(e.message);
@@ -121,12 +184,18 @@ document.getElementById('btn-vote').addEventListener('click', async () => {
   if (!voter) return alert('Predict or enter aadhar to vote');
   voteStatusEl.textContent = 'Submitting vote...';
   try {
+    // Step 7: pre-check if already voted
+    const v = await (await fetch(`/api/vote/${encodeURIComponent(voter)}`)).json();
+    if (v?.exists) {
+      voteStatusEl.textContent = 'Already voted earlier.';
+      toast(`Already voted: ${v.vote} on ${v.date} ${v.time}`);
+      return;
+    }
     const res = await fetch('/api/vote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ voter, party }) });
     const js = await res.json();
     if (!res.ok) throw new Error(js.error || 'Vote failed');
     voteStatusEl.textContent = 'Vote recorded!';
     toast('Vote recorded');
-    speak('Your vote has been recorded. Thank you.');
     resetWizardAfterDelay();
   } catch (e) {
     voteStatusEl.textContent = e.message;
@@ -136,39 +205,28 @@ document.getElementById('btn-vote').addEventListener('click', async () => {
 
 // Wizard navigation
 function goToStep(n){
-  [1,2,3,4].forEach(i => {
+  [1,2,3,4,5].forEach(i => {
     const step = document.querySelector(`.step[data-step="${i}"]`);
     const content = document.getElementById(`step-${i}`);
     if (!step || !content) return;
     if (i === n) { step.classList.add('active'); content.hidden = false; }
     else { step.classList.remove('active'); content.hidden = true; }
   });
-  if (n === 4) {
+  if (n === 5) {
     confirmIdEl.textContent = aadharEl.value.trim() || lastLabel || '-';
+    confirmNameEl.textContent = nameEl.value.trim() || '-';
     confirmPartyEl.textContent = partyEl.value || '-';
   }
 }
 
-function expandRegistration(){
-  const details = document.querySelector('#step-2 details');
-  if (details) details.open = true;
-}
-
-document.getElementById('btn-next-2')?.addEventListener('click', () => {
-  goToStep(3);
-  speak('Please choose your party.');
-});
-btnNew?.addEventListener('click', () => {
-  goToStep(2);
-  expandRegistration();
-  speak('Please enter your details and start registration.');
-});
 document.getElementById('btn-next-3')?.addEventListener('click', () => {
   goToStep(4);
-  speak('Review and press submit to confirm your vote.');
 });
-document.getElementById('btn-back-4')?.addEventListener('click', () => {
-  goToStep(3);
+document.getElementById('btn-next-4')?.addEventListener('click', () => {
+  goToStep(5);
+});
+document.getElementById('btn-back-5')?.addEventListener('click', () => {
+  goToStep(4);
 });
 
 // Theme & accessibility
@@ -177,11 +235,6 @@ btnTheme?.addEventListener('click', () => {
 });
 btnFontInc?.addEventListener('click', () => adjustFont(1));
 btnFontDec?.addEventListener('click', () => adjustFont(-1));
-btnVoice?.addEventListener('click', () => {
-  voiceOn = !voiceOn;
-  btnVoice.textContent = 'Voice: ' + (voiceOn ? 'On' : 'Off');
-  if (voiceOn) speak('Voice guidance enabled');
-});
 
 function adjustFont(delta){
   const style = getComputedStyle(document.documentElement);
@@ -218,13 +271,24 @@ function resetWizard(){
   aadharEl.value = '';
   nameEl.value = '';
   voteStatusEl.textContent = '';
+  capturedImages = [];
   goToStep(1);
 }
+
+function returnToFaceDetection() {
+  // Clear captured images and return to step 2 (face detection)
+  capturedImages = [];
+  aadharEl.value = '';
+  nameEl.value = '';
+  goToStep(2);
+  toast('Please capture your face again and verify Aadhar details');
+}
+
 function resetWizardAfterDelay(){
   setTimeout(resetWizard, 4000);
 }
 
-// Toasts & voice
+// Toasts
 function toast(msg){
   if (!toasts) return;
   const el = document.createElement('div');
@@ -232,12 +296,6 @@ function toast(msg){
   el.textContent = msg;
   toasts.appendChild(el);
   setTimeout(() => el.remove(), 4000);
-}
-function speak(text){
-  if (!voiceOn || !('speechSynthesis' in window)) return;
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.lang = 'en-US';
-  window.speechSynthesis.speak(utt);
 }
 
 init();

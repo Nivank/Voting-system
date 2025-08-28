@@ -13,7 +13,6 @@
         <button id="btn-theme" title="Toggle theme">Toggle Theme</button>
         <button id="font-dec" title="Smaller text">A-</button>
         <button id="font-inc" title="Larger text">A+</button>
-        <button id="btn-voice" title="Toggle voice guidance">Voice: On</button>
         <button id="btn-kiosk" title="Enter fullscreen kiosk mode">Kiosk Mode</button>
       </div>
     </header>
@@ -24,9 +23,10 @@
         <div class="wizard">
           <div class="steps">
             <div class="step active" data-step="1">1. Identify</div>
-            <div class="step" data-step="2">2. Verify</div>
-            <div class="step" data-step="3">3. Choose</div>
-            <div class="step" data-step="4">4. Confirm</div>
+            <div class="step" data-step="2">2. Capture Face (New)</div>
+            <div class="step" data-step="3">3. Verify/Details</div>
+            <div class="step" data-step="4">4. Choose</div>
+            <div class="step" data-step="5">5. Confirm</div>
           </div>
           <div class="step-content" id="step-1">
             <p>Center your face in the frame and press Identify.</p>
@@ -35,10 +35,29 @@
             <div class="controls">
               <button id="btn-predict">Identify</button>
               <span class="muted">Detected ID:</span> <strong id="label">-</strong>
-              <button id="btn-new">I'm New</button>
             </div>
           </div>
           <div class="step-content" id="step-2" hidden>
+            <p>New users: capture your face first.</p>
+            <video id="video-reg" autoplay playsinline muted></video>
+            <div class="row">
+              <label for="framesTotal">Frames to collect (max 5)</label>
+              <input id="framesTotal" type="number" value="5" min="1" max="5" />
+            </div>
+            <div class="row">
+              <label for="everyN">Capture every N frames</label>
+              <input id="everyN" type="number" value="2" min="1" max="10" />
+            </div>
+            <div class="controls">
+              <button id="btn-capture-faces">Capture Faces</button>
+              <small id="reg-status"></small>
+            </div>
+            <div class="controls">
+              <button id="to-step-3" disabled>Next: Enter Details</button>
+            </div>
+          </div>
+
+          <div class="step-content" id="step-3" hidden>
             <p>Enter or confirm your details.</p>
             <div class="row">
               <label for="aadhar">Aadhar number</label>
@@ -49,40 +68,29 @@
               <input id="name" placeholder="Enter your name" />
             </div>
             <div class="controls">
-              <button id="btn-next-2">Continue</button>
-            </div>
-            <details>
-              <summary>New user? Quick face registration</summary>
-              <div class="row">
-                <label for="framesTotal">Frames to collect (max 5)</label>
-                <input id="framesTotal" type="number" value="5" min="1" max="5" />
-              </div>
-              <div class="row">
-                <label for="everyN">Capture every N frames</label>
-                <input id="everyN" type="number" value="2" min="1" max="10" />
-              </div>
-              <div class="controls">
-                <button id="btn-register">Start Registration</button>
-                <small id="reg-status"></small>
-              </div>
-            </details>
-          </div>
-          <div class="step-content" id="step-3" hidden>
-            <p>Select your party.</p>
-            <div class="row">
-              <label for="party">Party</label>
-              <select id="party"></select>
+              <button id="btn-register">Submit Registration</button>
             </div>
             <div class="controls">
               <button id="btn-next-3">Continue</button>
             </div>
           </div>
           <div class="step-content" id="step-4" hidden>
+            <p>Select your party.</p>
+            <div class="row">
+              <label for="party">Party</label>
+              <select id="party"></select>
+            </div>
+            <div class="controls">
+              <button id="btn-next-4">Continue</button>
+            </div>
+          </div>
+          <div class="step-content" id="step-5" hidden>
             <p>Review your selection and submit.</p>
             <div class="row"><strong>ID:</strong> <span id="confirm-id">-</span></div>
+            <div class="row"><strong>Name:</strong> <span id="confirm-name">-</span></div>
             <div class="row"><strong>Party:</strong> <span id="confirm-party">-</span></div>
             <div class="controls">
-              <button id="btn-back-4">Back</button>
+              <button id="btn-back-5">Back</button>
               <button id="btn-vote">Submit Vote</button>
               <small id="vote-status"></small>
             </div>
