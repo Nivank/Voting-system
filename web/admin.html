@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin - AI Voting System</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Admin - AI Voting System</h1>
+    </header>
+    <main>
+      <section class="panel">
+        <h2>Login</h2>
+        <div class="row">
+          <label>Username</label>
+          <input id="adm-user" />
+        </div>
+        <div class="row">
+          <label>Password</label>
+          <input id="adm-pass" type="password" />
+        </div>
+        <div class="controls">
+          <button id="adm-login">Login</button>
+          <button id="adm-logout">Logout</button>
+          <small id="adm-status"></small>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Export Data</h2>
+        <p>Download all data as an Excel workbook.</p>
+        <div class="controls">
+          <a id="btn-download" href="/api/admin/export">Download Excel</a>
+        </div>
+        <div class="row">
+          <a href="/">Back to App</a>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Admin Tools</h2>
+        <div class="controls">
+          <button id="btn-reset">Erase All Registered Faces</button>
+        </div>
+        <div class="row"><small id="reset-status"></small></div>
+      </section>
+
+      <section class="panel">
+        <h2>Dashboard</h2>
+        <div class="row"><strong>Total Registered IDs:</strong> <span id="stat-registered">0</span></div>
+        <div class="row"><strong>Total Votes:</strong> <span id="stat-votes">0</span></div>
+        <div style="max-width:500px;">
+          <canvas id="chart" width="500" height="300"></canvas>
+        </div>
+        <div class="row"><strong>Recent Votes</strong></div>
+        <ul id="recent"></ul>
+      </section>
+
+      <section class="panel">
+        <h2>Votes</h2>
+        <ul id="votes-list"></ul>
+        <div class="controls">
+          <button id="reset-votes">Reset All Votes</button>
+          <small id="votes-status"></small>
+        </div>
+      </section>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      async function requireAuth(){
+        const me = await (await fetch('/api/admin/me')).json();
+        if (!me.user) {
+          document.getElementById('adm-status').textContent = 'Please login as nivank or superior.';
+        } else {
+          document.getElementById('adm-status').textContent = 'Logged in as ' + me.user;
+        }
+      }
+      document.getElementById('adm-login').addEventListener('click', async () => {
+        const username = document.getElementById('adm-user').value.trim();
+        const password = document.getElementById('adm-pass').value;
+        const res = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+        const js = await res.json();
+        if (!res.ok) { alert('Login failed'); return; }
+        document.getElementById('adm-status').textContent = 'Logged in as ' + js.user;
+        loadStats();
+        loadVotes();
+      });
+      document.getElementById('adm-logout').addEventListener('click', async () => {
+        await fetch('/api/admin/logout', { method: 'POST' });
+        document.getElementById('adm-status').textContent = 'Logged out';
+      });
+      const resetStatusEl = document.getElementById('reset-status');
+      async function loadStats(){
+        const me = await (await fetch('/api/admin/me')).json();
+        if (!me.user) return;
+        try {
+          const js = await (await fetch('/api/admin/stats')).json();
+          document.getElementById('stat-registered').textContent = js.totalRegistered;
+          document.getElementById('stat-votes').textContent = js.totalVotes;
+          const labels = Object.keys(js.votesByParty || {});
+          const data = Object.values(js.votesByParty || {});
+          const ctx = document.getElementById('chart').getContext('2d');
+          new Chart(ctx, { type: 'pie', data: { labels, datasets: [{ data, backgroundColor: ['#22c55e','#3b82f6','#f59e0b','#ef4444','#8b5cf6'] }]}});
+          const recent = document.getElementById('recent');
+          recent.innerHTML = (js.recent||[]).map(r => `<li>${r.date} ${r.time} - ${r.name} → ${r.vote}</li>`).join('');
+        } catch(e) {}
+      }
+      document.getElementById('btn-reset').addEventListener('click', async () => {
+        const me = await (await fetch('/api/admin/me')).json();
+        if (!me.user) { alert('Login first'); return; }
+        if (!confirm('Erase all registered faces? This cannot be undone.')) return;
+        resetStatusEl.textContent = 'Erasing...';
+        try {
+          const res = await fetch('/api/reset-faces', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: 'yes' }) });
+          const js = await res.json();
+          if (!res.ok) throw new Error(js.error || 'Reset failed');
+          resetStatusEl.textContent = 'All face data erased.';
+          loadStats();
+        } catch (e) {
+          resetStatusEl.textContent = e.message;
+          alert(e.message);
+        }
+      });
+      // Votes table controls
+      async function loadVotes(){
+        const me = await (await fetch('/api/admin/me')).json();
+        if (!me.user) return;
+        const js = await (await fetch('/api/admin/votes')).json();
+        const list = document.getElementById('votes-list');
+        if (!list) return;
+        list.innerHTML = (js.rows||[]).map(r => `<li>#${r.index+1} ${r.date} ${r.time} - ${r.name} → ${r.vote} <button data-i="${r.index}">Delete</button></li>`).join('');
+        list.querySelectorAll('button').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const idx = parseInt(btn.getAttribute('data-i'), 10);
+            if (!confirm('Delete this vote?')) return;
+            const res = await fetch('/api/admin/votes/'+idx, { method: 'DELETE' });
+            if (!res.ok) { alert('Delete failed'); return; }
+            loadStats();
+            loadVotes();
+          });
+        });
+      }
+      document.getElementById('reset-votes').addEventListener('click', async () => {
+        const me = await (await fetch('/api/admin/me')).json();
+        if (!me.user) { alert('Login first'); return; }
+        if (!confirm('Reset ALL votes? This cannot be undone.')) return;
+        const status = document.getElementById('votes-status');
+        status.textContent = 'Resetting...';
+        const res = await fetch('/api/admin/reset-votes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: 'yes' }) });
+        const js = await res.json();
+        if (!res.ok) { alert('Reset failed'); status.textContent = 'Failed'; return; }
+        status.textContent = 'All votes reset.';
+        loadStats();
+        loadVotes();
+      });
+      requireAuth();
+      loadStats();
+      loadVotes();
+    </script>
+  </body>
+  </html>
+
+

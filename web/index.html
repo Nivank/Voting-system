@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Voting System</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>AI Voting System</h1>
+    </header>
+
+    <main>
+      <section class="panel">
+        <h2>Webcam</h2>
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas" width="640" height="480" hidden></canvas>
+        <div class="controls">
+          <button id="btn-capture">Capture Snapshot</button>
+          <button id="btn-predict">Predict Identity</button>
+        </div>
+        <div class="row">
+          <label>Last label:</label>
+          <span id="label">-</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Register Faces</h2>
+        <div class="row">
+          <label for="aadhar">Aadhar number</label>
+          <input id="aadhar" placeholder="Enter aadhar" />
+        </div>
+        <div class="row">
+          <label for="name">Name</label>
+          <input id="name" placeholder="Enter your name" />
+        </div>
+        <div class="row">
+          <label for="framesTotal">Frames to collect (max 5)</label>
+          <input id="framesTotal" type="number" value="5" min="1" max="5" />
+        </div>
+        <div class="row">
+          <label for="everyN">Capture every N frames</label>
+          <input id="everyN" type="number" value="2" min="1" max="10" />
+        </div>
+        <div class="controls">
+          <button id="btn-register">Start Registration</button>
+        </div>
+        <div class="row"><small id="reg-status"></small></div>
+      </section>
+
+      <section class="panel">
+        <h2>Vote</h2>
+        <div class="row">
+          <label for="party">Select party</label>
+          <select id="party"></select>
+        </div>
+        <div class="controls">
+          <button id="btn-vote">Cast Vote</button>
+        </div>
+        <div class="row"><small id="vote-status"></small></div>
+      </section>
+
+      
+    </main>
+
+    <footer>
+      <small>Frontend demo for your Python voting project</small>
+      <span> | </span>
+      <a href="/admin.html">Admin</a>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+  </html>
+
+
