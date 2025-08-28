@@ -16,6 +16,7 @@ const btnFontDec = document.getElementById('font-dec');
 const btnVoice = document.getElementById('btn-voice');
 const btnKiosk = document.getElementById('btn-kiosk');
 const toasts = document.getElementById('toasts');
+const btnNew = document.getElementById('btn-new');
 
 let lastLabel = null;
 let voiceOn = true;
@@ -52,7 +53,16 @@ document.getElementById('btn-predict').addEventListener('click', async () => {
   try {
     const res = await fetch('/api/predict', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: dataUrl }) });
     const js = await res.json();
-    if (!res.ok) throw new Error(js.error || 'Prediction failed');
+    if (!res.ok) {
+      if (js.error === 'no face detected' || js.error === 'no training data') {
+        toast('Could not identify. You can register as a new user.');
+        speak('We could not identify you. You can register as a new user.');
+        goToStep(2);
+        expandRegistration();
+        return;
+      }
+      throw new Error(js.error || 'Prediction failed');
+    }
     lastLabel = js.label;
     labelEl.textContent = js.label;
     aadharEl.value = js.label;
@@ -61,7 +71,7 @@ document.getElementById('btn-predict').addEventListener('click', async () => {
     speak('Identification complete. Please verify your details.');
   } catch (e) {
     labelEl.textContent = '-';
-    alert(e.message);
+    toast(e.message);
   }
 });
 
@@ -139,9 +149,19 @@ function goToStep(n){
   }
 }
 
+function expandRegistration(){
+  const details = document.querySelector('#step-2 details');
+  if (details) details.open = true;
+}
+
 document.getElementById('btn-next-2')?.addEventListener('click', () => {
   goToStep(3);
   speak('Please choose your party.');
+});
+btnNew?.addEventListener('click', () => {
+  goToStep(2);
+  expandRegistration();
+  speak('Please enter your details and start registration.');
 });
 document.getElementById('btn-next-3')?.addEventListener('click', () => {
   goToStep(4);
