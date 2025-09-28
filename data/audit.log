@@ -60,3 +60,21 @@
 {"ts": "2025-08-28T16:05:25.159397Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "dfs", "party": "BJP", "date": "28-08-2025", "time": "21:35-25"}}
 {"ts": "2025-08-28T16:05:42.715857Z", "user": "nivank", "event": "reset_faces", "detail": {"removed": ["faces_data.pkl", "names.pkl"]}}
 {"ts": "2025-08-28T16:06:15.942645Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "45454", "party": "CONGRESS", "date": "28-08-2025", "time": "21:36-15"}}
+{"ts": "2025-08-28T16:25:19.411070Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "45454j", "party": "BJP", "date": "28-08-2025", "time": "21:55-19"}}
+{"ts": "2025-09-21T14:43:04.834863Z", "user": "nivank", "event": "admin_login", "detail": {"user": "nivank"}}
+{"ts": "2025-09-28T11:32:48.174970Z", "user": null, "event": "vote_cast", "detail": {"voter": "987654321000", "party": "BJP", "date": "28-09-2025", "time": "17:02-48"}}
+{"ts": "2025-09-28T11:39:16.429437Z", "user": null, "event": "vote_cast", "detail": {"voter": "944314129899", "party": "BJP", "date": "28-09-2025", "time": "17:09-16"}}
+{"ts": "2025-09-28T11:53:59.819616Z", "user": null, "event": "vote_cast", "detail": {"voter": "565556565", "party": "BJP", "date": "28-09-2025", "time": "17:23-59"}}
+{"ts": "2025-09-28T12:05:56.417548Z", "user": "nivank", "event": "admin_login", "detail": {"user": "nivank"}}
+{"ts": "2025-09-28T12:05:58.427207Z", "user": null, "event": "admin_logout", "detail": {}}
+{"ts": "2025-09-28T12:06:14.435877Z", "user": "nivank", "event": "admin_login", "detail": {"user": "nivank"}}
+{"ts": "2025-09-28T13:01:05.061162Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "4542178987", "party": "BJP", "date": "28-09-2025", "time": "18:31-05"}}
+{"ts": "2025-09-28T13:01:56.398148Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "455", "party": "BJP", "date": "28-09-2025", "time": "18:31-56"}}
+{"ts": "2025-09-28T13:07:46.108875Z", "user": null, "event": "vote_cast", "detail": {"voter": "950368242827", "party": "BJP", "date": "28-09-2025", "time": "18:37-46"}}
+{"ts": "2025-09-28T13:09:08.936289Z", "user": "nivank", "event": "admin_login", "detail": {"user": "nivank"}}
+{"ts": "2025-09-28T13:10:34.586167Z", "user": "nivank", "event": "reset_faces", "detail": {"removed": ["faces_data.pkl", "names.pkl"]}}
+{"ts": "2025-09-28T13:11:02.945377Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "950368242827", "name": "Mehul Bail", "exists": false, "name_match": false, "registry": true, "registry_name_match": true, "predicted": null, "voted": true}}
+{"ts": "2025-09-28T13:19:54.077165Z", "user": "nivank", "event": "add_party", "detail": {"party": "nivank"}}
+{"ts": "2025-09-28T13:24:06.958773Z", "user": "nivank", "event": "admin_register", "detail": {"aadhar": "998877665544", "name": "nerve"}}
+{"ts": "2025-09-28T13:24:34.241488Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "998877665544", "name": "nerve", "exists": true, "name_match": true, "registry": true, "registry_name_match": true, "predicted": null, "voted": false}}
+{"ts": "2025-09-28T13:24:46.757703Z", "user": null, "event": "admin_logout", "detail": {}}

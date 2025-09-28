@@ -3,6 +3,8 @@ const canvas = document.getElementById('canvas');
 const labelEl = document.getElementById('label');
 const aadharEl = document.getElementById('aadhar');
 const nameEl = document.getElementById('name');
+const ageDisplayEl = document.getElementById('age-display');
+const registryAgeEl = document.getElementById('registry-age');
 const framesTotalEl = document.getElementById('framesTotal');
 const everyNEl = document.getElementById('everyN');
 const regStatusEl = document.getElementById('reg-status');
@@ -11,7 +13,6 @@ const voteStatusEl = document.getElementById('vote-status');
 const confirmIdEl = document.getElementById('confirm-id');
 const confirmPartyEl = document.getElementById('confirm-party');
 const confirmNameEl = document.getElementById('confirm-name');
-const btnTheme = document.getElementById('btn-theme');
 const btnFontInc = document.getElementById('font-inc');
 const btnFontDec = document.getElementById('font-dec');
 const btnKiosk = document.getElementById('btn-kiosk');
@@ -21,6 +22,7 @@ const videoReg = document.getElementById('video-reg');
 let lastLabel = null;
 let inactivityTimer = null;
 let capturedImages = [];
+let lastCapturedFace = null; // Store the last captured face for display
 
 async function init() {
   try {
@@ -36,15 +38,45 @@ async function init() {
       partyEl.innerHTML = cfg.parties.map(p => `<option value="${p}">${p}</option>`).join('');
     }
   } catch (e) {}
-  // If Aadhar typed manually, check registry quickly
+  // If Aadhar typed manually, check registry and vote status
   aadharEl?.addEventListener('change', async () => {
     const id = aadharEl.value.trim();
-    if (!id) return;
+    if (!id) {
+      ageDisplayEl.style.display = 'none';
+      return;
+    }
     try {
       const reg = await (await fetch(`/api/registry/${encodeURIComponent(id)}`)).json();
-      if (!reg.registry) toast('Aadhar not found in registry');
+      if (!reg.registry) {
+        toast('Aadhar not found in registry');
+        ageDisplayEl.style.display = 'none';
+        return;
+      }
       if (reg.registryName && !nameEl.value) nameEl.value = reg.registryName;
-    } catch (e) {}
+      
+      // Get age from dataset
+      const ageData = await (await fetch(`/api/registry-age/${encodeURIComponent(id)}`)).json();
+      if (ageData.age) {
+        registryAgeEl.textContent = ageData.age;
+        ageDisplayEl.style.display = 'block';
+      } else {
+        ageDisplayEl.style.display = 'none';
+      }
+      
+      // Check if this person has already voted
+      const voteStatus = await (await fetch(`/api/vote/${encodeURIComponent(id)}`)).json();
+      if (voteStatus?.exists) {
+        toast(`This person has already voted: ${voteStatus.vote} on ${voteStatus.date} ${voteStatus.time}`);
+        // Clear the fields to prevent proceeding
+        aadharEl.value = '';
+        nameEl.value = '';
+        ageDisplayEl.style.display = 'none';
+        return;
+      }
+    } catch (e) {
+      console.error('Error checking registry/vote status:', e);
+      ageDisplayEl.style.display = 'none';
+    }
   });
 }
 
@@ -55,6 +87,44 @@ function snapshotDataUrl(src = video) {
   const ctx = canvas.getContext('2d');
   ctx.drawImage(src || video, 0, 0, w, h);
   return canvas.toDataURL('image/jpeg', 0.9);
+}
+
+// Face quality validation function with enhanced clarity checks
+async function validateFaceQuality(imageDataUrl) {
+  try {
+    const response = await fetch('/api/validate-face', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: imageDataUrl })
+    });
+    const result = await response.json();
+    
+    if (!result.valid) {
+      // Show specific reason for rejection
+      if (result.reason) {
+        toast(`Photo rejected: ${result.reason}. Please ensure good lighting and face the camera directly.`);
+      }
+      return false;
+    }
+    
+    return true;
+  } catch (e) {
+    console.error('Face validation error:', e);
+    toast('Photo validation failed. Please try again.');
+    return false;
+  }
+}
+
+// Check if voter has already voted
+async function checkVoteStatus(voterId) {
+  try {
+    const response = await fetch(`/api/vote/${encodeURIComponent(voterId)}`);
+    const result = await response.json();
+    return result;
+  } catch (e) {
+    console.error('Vote status check error:', e);
+    return { exists: false };
+  }
 }
 
 document.getElementById('btn-predict').addEventListener('click', async () => {
@@ -74,6 +144,20 @@ document.getElementById('btn-predict').addEventListener('click', async () => {
     lastLabel = js.label;
     labelEl.textContent = js.label;
     aadharEl.value = js.label;
+    
+    // Check if this person has already voted
+    try {
+      const voteStatus = await (await fetch(`/api/vote/${encodeURIComponent(js.label)}`)).json();
+      if (voteStatus?.exists) {
+        labelEl.textContent = js.label + ' (Already Voted)';
+        toast(`This person has already voted: ${voteStatus.vote} on ${voteStatus.date} ${voteStatus.time}`);
+        // Don't proceed to next step - show message and stay on identification step
+        return;
+      }
+    } catch (e) {
+      console.error('Error checking vote status:', e);
+    }
+    
     // Try to fetch profile to auto-fill name
     try {
       const prof = await (await fetch(`/api/profile/${encodeURIComponent(js.label)}`)).json();
@@ -93,17 +177,44 @@ document.getElementById('btn-capture-faces')?.addEventListener('click', async ()
   regStatusEl.textContent = 'Capturing images...';
   capturedImages = [];
   let collected = 0, i = 0;
-  while (collected < framesTotal) {
+  
+  // Capture images with strict face validation
+  let attempts = 0;
+  const maxAttempts = framesTotal * 3; // Allow more attempts for better quality
+  
+  while (collected < framesTotal && attempts < maxAttempts) {
     if (i % everyN === 0) {
-      capturedImages.push(snapshotDataUrl(videoReg || video));
-      collected++;
+      const imageDataUrl = snapshotDataUrl(videoReg || video);
+      
+      // Validate face quality before adding to collection
+      const isValidFace = await validateFaceQuality(imageDataUrl);
+      if (isValidFace) {
+        capturedImages.push(imageDataUrl);
+        lastCapturedFace = imageDataUrl; // Store the last captured face
+        collected++;
+        regStatusEl.textContent = `Captured ${collected}/${framesTotal} clear faces...`;
+      } else {
+        regStatusEl.textContent = `Photo not clear enough, retrying... (${collected}/${framesTotal})`;
+      }
+      attempts++;
     }
     i++;
-    await new Promise(r => setTimeout(r, 80));
+    await new Promise(r => setTimeout(r, 100)); // Slightly longer delay for better quality
   }
-  regStatusEl.textContent = `Captured ${capturedImages.length} frames.`;
+  
+  if (capturedImages.length === 0) {
+    regStatusEl.textContent = 'No clear faces captured. Please try again.';
+    toast('No clear faces detected. Please ensure good lighting and face the camera directly.');
+    return;
+  }
+  
+  regStatusEl.textContent = `Successfully captured ${capturedImages.length} clear faces.`;
   const nextBtn = document.getElementById('to-step-3');
-  if (nextBtn) nextBtn.disabled = capturedImages.length === 0;
+  if (nextBtn) {
+    nextBtn.disabled = false;
+    nextBtn.textContent = 'Continue to Details';
+  }
+  toast('Face capture successful! You can now proceed.');
 });
 
 document.getElementById('to-step-3')?.addEventListener('click', () => {
@@ -113,9 +224,11 @@ document.getElementById('to-step-3')?.addEventListener('click', () => {
 
 document.getElementById('btn-register')?.addEventListener('click', async () => {
   const aadhar = aadharEl.value.trim();
+  
   if (!aadhar) return alert('Enter aadhar number first');
   if (!capturedImages.length) { toast('Please capture your face first'); return; }
-  if (!/^\d{4,}$/.test(aadhar)) { toast('Enter numeric Aadhar'); return; }
+  if (!/^\d{12}$/.test(aadhar)) { toast('Enter valid 12-digit Aadhar'); return; }
+  
   const rawName = nameEl.value.trim();
   if (!/^[A-Za-z ]{2,}$/.test(rawName)) { toast('Name must contain letters and spaces only'); return; }
 
@@ -216,23 +329,56 @@ function goToStep(n){
     confirmIdEl.textContent = aadharEl.value.trim() || lastLabel || '-';
     confirmNameEl.textContent = nameEl.value.trim() || '-';
     confirmPartyEl.textContent = partyEl.value || '-';
+    
+    // Show captured face if available
+    const capturedFaceEl = document.getElementById('captured-face');
+    const capturedFaceContainer = document.getElementById('captured-face-container');
+    if (capturedFaceEl && lastCapturedFace) {
+      capturedFaceEl.src = lastCapturedFace;
+      capturedFaceContainer.style.display = 'block';
+    } else if (capturedFaceContainer) {
+      capturedFaceContainer.style.display = 'none';
+    }
   }
 }
 
-document.getElementById('btn-next-3')?.addEventListener('click', () => {
+document.getElementById('btn-next-3')?.addEventListener('click', async () => {
+  const voter = lastLabel || aadharEl.value.trim();
+  if (!voter) {
+    toast('Please identify yourself or enter Aadhar number');
+    return;
+  }
+  
+  // Check if already voted before proceeding
+  const voteStatus = await checkVoteStatus(voter);
+  if (voteStatus?.exists) {
+    toast(`This person has already voted: ${voteStatus.vote} on ${voteStatus.date} ${voteStatus.time}`);
+    return;
+  }
+  
   goToStep(4);
 });
-document.getElementById('btn-next-4')?.addEventListener('click', () => {
+document.getElementById('btn-next-4')?.addEventListener('click', async () => {
+  const voter = lastLabel || aadharEl.value.trim();
+  if (!voter) {
+    toast('Please identify yourself or enter Aadhar number');
+    return;
+  }
+  
+  // Check if already voted before proceeding
+  const voteStatus = await checkVoteStatus(voter);
+  if (voteStatus?.exists) {
+    toast(`This person has already voted: ${voteStatus.vote} on ${voteStatus.date} ${voteStatus.time}`);
+    return;
+  }
+  
   goToStep(5);
 });
 document.getElementById('btn-back-5')?.addEventListener('click', () => {
   goToStep(4);
 });
 
-// Theme & accessibility
-btnTheme?.addEventListener('click', () => {
-  document.documentElement.classList.toggle('theme-light');
-});
+// Accessibility
 btnFontInc?.addEventListener('click', () => adjustFont(1));
 btnFontDec?.addEventListener('click', () => adjustFont(-1));
 
@@ -270,16 +416,20 @@ function resetWizard(){
   labelEl.textContent = '-';
   aadharEl.value = '';
   nameEl.value = '';
+  ageDisplayEl.style.display = 'none';
   voteStatusEl.textContent = '';
   capturedImages = [];
+  lastCapturedFace = null;
   goToStep(1);
 }
 
 function returnToFaceDetection() {
   // Clear captured images and return to step 2 (face detection)
   capturedImages = [];
+  lastCapturedFace = null;
   aadharEl.value = '';
   nameEl.value = '';
+  ageDisplayEl.style.display = 'none';
   goToStep(2);
   toast('Please capture your face again and verify Aadhar details');
 }

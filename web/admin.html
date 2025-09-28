@@ -47,11 +47,19 @@
       </section>
 
       <section class="panel">
+        <h2>Manage Candidates/Parties</h2>
+        <div class="row"><label>Add New Party</label><input id="new-party" placeholder="Enter party name" /></div>
+        <div class="controls"><button id="add-party">Add Party</button><small id="party-status"></small></div>
+        <div class="row"><label>Current Parties:</label></div>
+        <ul id="parties-list"></ul>
+        <div class="controls"><button id="remove-party">Remove Selected</button></div>
+      </section>
+
+      <section class="panel">
         <h2>Register Voter Manually</h2>
-        <div class="row"><label>Aadhar</label><input id="adm-aadhar" /></div>
-        <div class="row"><label>Name</label><input id="adm-name" /></div>
-        <div class="row"><label>Photos (minimum 4, max 5)</label><input id="adm-photos" type="file" accept="image/*" multiple /></div>
-        <div class="controls"><button id="adm-register">Upload & Register</button><small id="adm-reg-status"></small></div>
+        <div class="row"><label>Aadhar (12 digits)</label><input id="adm-aadhar" placeholder="Enter 12-digit Aadhar" maxlength="12" /></div>
+        <div class="row"><label>Name</label><input id="adm-name" placeholder="Enter full name" /></div>
+        <div class="controls"><button id="adm-register">Register Voter</button><small id="adm-reg-status"></small></div>
       </section>
 
       <section class="panel">
@@ -185,10 +193,84 @@
         loadStats();
         loadVotes();
       });
+      // Party management
+      async function loadParties() {
+        const me = await (await fetch('/api/admin/me')).json();
+        if (!me.user) return;
+        try {
+          const res = await fetch('/api/admin/parties');
+          const data = await res.json();
+          const list = document.getElementById('parties-list');
+          if (list) {
+            list.innerHTML = data.parties.map(party => 
+              `<li><input type="checkbox" value="${party}" /> ${party}</li>`
+            ).join('');
+          }
+        } catch (e) {
+          console.error('Error loading parties:', e);
+        }
+      }
+
+      document.getElementById('add-party').addEventListener('click', async () => {
+        const me = await (await fetch('/api/admin/me')).json();
+        if (!me.user) { alert('Login first'); return; }
+        const partyName = document.getElementById('new-party').value.trim();
+        if (!partyName) { alert('Enter party name'); return; }
+        
+        const status = document.getElementById('party-status');
+        status.textContent = 'Adding...';
+        try {
+          const res = await fetch('/api/admin/parties', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: partyName })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            status.textContent = data.message;
+            document.getElementById('new-party').value = '';
+            loadParties();
+          } else {
+            status.textContent = data.error || 'Failed to add party';
+          }
+        } catch (e) {
+          status.textContent = 'Error adding party';
+        }
+      });
+
+      document.getElementById('remove-party').addEventListener('click', async () => {
+        const me = await (await fetch('/api/admin/me')).json();
+        if (!me.user) { alert('Login first'); return; }
+        const checkboxes = document.querySelectorAll('#parties-list input[type="checkbox"]:checked');
+        if (checkboxes.length === 0) { alert('Select parties to remove'); return; }
+        if (!confirm(`Remove ${checkboxes.length} party/parties?`)) return;
+        
+        const status = document.getElementById('party-status');
+        status.textContent = 'Removing...';
+        try {
+          for (const checkbox of checkboxes) {
+            const res = await fetch('/api/admin/parties', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: checkbox.value })
+            });
+            if (!res.ok) {
+              const data = await res.json();
+              alert(`Failed to remove ${checkbox.value}: ${data.error}`);
+            }
+          }
+          status.textContent = 'Parties removed successfully';
+          loadParties();
+        } catch (e) {
+          status.textContent = 'Error removing parties';
+        }
+      });
+
       requireAuth();
       loadStats();
       loadVotes();
       loadAudit();
+      loadParties();
 
       // Admin manual register
       document.getElementById('adm-register').addEventListener('click', async () => {
@@ -196,57 +278,38 @@
         if (!me.user) { alert('Login first'); return; }
         const aadhar = document.getElementById('adm-aadhar').value.trim();
         const name = document.getElementById('adm-name').value.trim();
-        const files = Array.from(document.getElementById('adm-photos').files || []);
         const status = document.getElementById('adm-reg-status');
-        if (!aadhar || !name || files.length < 4) { 
-          alert('Aadhar, name, and minimum 4 photos are required'); 
+        
+        if (!aadhar || !name) { 
+          alert('Aadhar and name are required'); 
           return; 
         }
-        if (files.length > 5) {
-          alert('Maximum 5 photos allowed');
+        if (!/^\d{12}$/.test(aadhar)) {
+          alert('Aadhar must be exactly 12 digits');
           return;
         }
         
-        // Validate against registry first
+        status.textContent = 'Registering voter...';
         try {
-          const validation = await (await fetch('/api/validate-registry', { 
+          const resp = await fetch('/api/admin/register', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ aadhar, name }) 
-          })).json();
-          
-          if (!validation.valid) {
-            if (validation.error === 'not_in_registry') {
-              alert('Aadhar not found in registry');
-              return;
-            } else if (validation.error === 'name_mismatch') {
-              alert('Name does not match registry');
-              return;
-            }
-            alert(validation.message || 'Validation failed');
-            return;
+          });
+          const js = await resp.json();
+          if (!resp.ok) { 
+            alert(js.error || 'Registration failed'); 
+            status.textContent = 'Failed'; 
+            return; 
           }
+          status.textContent = `Voter ${name} (${aadhar}) registered successfully`;
+          document.getElementById('adm-aadhar').value = '';
+          document.getElementById('adm-name').value = '';
+          loadStats();
         } catch (e) {
-          alert('Registry validation failed');
-          return;
+          status.textContent = 'Registration failed';
+          alert('Registration failed: ' + e.message);
         }
-        
-        status.textContent = 'Processing images...';
-        const images = await Promise.all(files.map(f => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(f); })));
-        status.textContent = 'Uploading...';
-        const resp = await fetch('/api/admin/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aadhar, name, images }) });
-        const js = await resp.json();
-        if (!resp.ok) { 
-          if (js.error === 'name_mismatch') {
-            alert('Name does not match registry');
-          } else {
-            alert(js.error || 'Failed'); 
-          }
-          status.textContent = 'Failed'; 
-          return; 
-        }
-        status.textContent = `Registered ${js.added} frames for ${aadhar}`;
-        loadStats();
       });
 
       // Admin verify

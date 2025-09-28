@@ -10,7 +10,6 @@
     <header>
       <h1>AI Voting System</h1>
       <div class="controls" style="justify-content:center;">
-        <button id="btn-theme" title="Toggle theme">Toggle Theme</button>
         <button id="font-dec" title="Smaller text">A-</button>
         <button id="font-inc" title="Larger text">A+</button>
         <button id="btn-kiosk" title="Enter fullscreen kiosk mode">Kiosk Mode</button>
@@ -58,7 +57,7 @@
           </div>
 
           <div class="step-content" id="step-3" hidden>
-            <p>Enter or confirm your details.</p>
+            <p>Verify your details from the registry.</p>
             <div class="row">
               <label for="aadhar">Aadhar number</label>
               <input id="aadhar" placeholder="Enter aadhar" />
@@ -66,6 +65,10 @@
             <div class="row">
               <label for="name">Name</label>
               <input id="name" placeholder="Enter your name" />
+            </div>
+            <div class="row" id="age-display" style="display: none;">
+              <label>Age from Registry:</label>
+              <span id="registry-age" style="font-weight: bold; color: #16a34a;"></span>
             </div>
             <div class="controls">
               <button id="btn-register">Submit Registration</button>
@@ -89,6 +92,10 @@
             <div class="row"><strong>ID:</strong> <span id="confirm-id">-</span></div>
             <div class="row"><strong>Name:</strong> <span id="confirm-name">-</span></div>
             <div class="row"><strong>Party:</strong> <span id="confirm-party">-</span></div>
+            <div class="row" id="captured-face-container" style="display: none;">
+              <strong>Captured Face:</strong>
+              <img id="captured-face" style="max-width: 200px; max-height: 200px; border: 2px solid #ccc; border-radius: 8px; margin-top: 10px;" />
+            </div>
             <div class="controls">
               <button id="btn-back-5">Back</button>
               <button id="btn-vote">Submit Vote</button>
@@ -105,11 +112,7 @@
 
     </main>
 
-    <footer>
-      <small>Frontend demo for your Python voting project</small>
-      <span> | </span>
-      <a href="/admin.html">Admin</a>
-    </footer>
+    
 
     <script src="/app.js"></script>
     <div id="toasts"></div>

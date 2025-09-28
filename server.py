@@ -4,6 +4,8 @@ import csv
 import time
 import base64
 import pickle
+import re
+import json
 from datetime import datetime
 
 from flask import Flask, request, jsonify, send_from_directory, session
@@ -29,8 +31,8 @@ AUDIT_LOG = os.path.join(DATA_DIR, "audit.log")
 REGISTRY_CSV = os.path.join(DATA_DIR, "fake_aadhaar_dataset_custom.csv")
 
 USERS = {
-    "nivank": "nivankclaps",
-    "superior": "yougotnogame",
+    "nivank": "abhivyakti",
+    "superior": "ashwathama",
 }
 
 
@@ -185,12 +187,24 @@ def config():
     # Placeholder endpoint for customizable options (e.g., framesTotal, neighbors, parties)
     if request.method == "POST":
         return jsonify({"ok": True})
+    
+    # Load parties from file or use default
+    try:
+        if os.path.exists("data/parties.json"):
+            with open("data/parties.json", "r") as f:
+                parties_config = json.load(f)
+                parties = parties_config.get("parties", ["BJP", "CONGRESS", "AAP", "NOTA"])
+        else:
+            parties = ["BJP", "CONGRESS", "AAP", "NOTA"]
+    except Exception:
+        parties = ["BJP", "CONGRESS", "AAP", "NOTA"]
+    
     return jsonify({
         "neighbors": 5,
         "framesTotal": 5,
         "maxFrames": 5,
         "captureEveryNFrames": 2,
-        "parties": ["BJP", "CONGRESS", "AAP", "NOTA"]
+        "parties": parties
     })
 
 
@@ -202,8 +216,13 @@ def register_face():
     images = payload.get("images", [])
     if not aadhar or not images:
         return jsonify({"error": "aadhar and images are required"}), 400
+    
+    # Validate Aadhar format (12 digits)
+    if not re.match(r'^\d{12}$', str(aadhar)):
+        return jsonify({"error": "invalid_aadhar", "message": "Aadhar must be exactly 12 digits"}), 400
 
     ensure_data_dir()
+
 
     # Validate against registry: must exist in fake registry to proceed
     if not is_in_registry(str(aadhar)):
@@ -309,6 +328,66 @@ def predict_face():
     resized_img = cv2.resize(crop_img, (50, 50)).flatten().reshape(1, -1)
     output = knn.predict(resized_img)
     return jsonify({"label": str(output[0])})
+
+
+@app.route("/api/validate-face", methods=["POST"])
+def validate_face():
+    """Validate face quality for registration"""
+    payload = request.get_json(silent=True) or {}
+    image = payload.get("image")
+    if not image:
+        return jsonify({"error": "image is required"}), 400
+
+    img = decode_base64_image(image)
+    if img is None:
+        return jsonify({"valid": False, "reason": "bad image"})
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+    
+    if len(faces) == 0:
+        return jsonify({"valid": False, "reason": "no face detected"})
+    
+    # Get the largest face
+    largest_face = max(faces, key=lambda face: face[2] * face[3])
+    x, y, w, h = largest_face
+    
+    # Check face size (should be reasonably large)
+    if w < 50 or h < 50:
+        return jsonify({"valid": False, "reason": "face too small"})
+    
+    # Check face position (should be roughly centered)
+    img_height, img_width = gray.shape
+    center_x, center_y = img_width // 2, img_height // 2
+    face_center_x, face_center_y = x + w // 2, y + h // 2
+    
+    # Allow some tolerance for face position
+    tolerance = min(img_width, img_height) // 4
+    if (abs(face_center_x - center_x) > tolerance or 
+        abs(face_center_y - center_y) > tolerance):
+        return jsonify({"valid": False, "reason": "face not centered"})
+    
+    # Check image quality using Laplacian variance (blur detection)
+    face_roi = gray[y:y+h, x:x+w]
+    laplacian_var = cv2.Laplacian(face_roi, cv2.CV_64F).var()
+    
+    # More strict threshold for blur detection
+    if laplacian_var < 150:
+        return jsonify({"valid": False, "reason": "image too blurry"})
+    
+    # Additional quality checks
+    # Check for sufficient contrast
+    contrast = face_roi.std()
+    if contrast < 30:
+        return jsonify({"valid": False, "reason": "insufficient contrast"})
+    
+    # Check for proper lighting (not too dark or too bright)
+    brightness = face_roi.mean()
+    if brightness < 50 or brightness > 200:
+        return jsonify({"valid": False, "reason": "poor lighting conditions"})
+    
+    return jsonify({"valid": True, "reason": "face quality good"})
 
 
 def has_already_voted(voter_id: str) -> bool:
@@ -625,69 +704,47 @@ def admin_register_voter():
     data = request.get_json(silent=True) or {}
     aadhar = data.get("aadhar")
     name = data.get("name", "")
-    images = data.get("images", [])
-    if not aadhar or not images or len(images) < 4:
-        return jsonify({"error": "aadhar, name, and minimum 4 photos are required"}), 400
-    if not is_in_registry(str(aadhar)):
-        return jsonify({"error": "not_in_registry"}), 403
+    
+    if not aadhar or not name:
+        return jsonify({"error": "aadhar and name are required"}), 400
+    
+    # Validate Aadhar format (12 digits)
+    if not re.match(r'^\d{12}$', str(aadhar)):
+        return jsonify({"error": "invalid_aadhar", "message": "Aadhar must be exactly 12 digits"}), 400
+    
+    # Check if already registered
     if is_aadhar_registered(str(aadhar)):
         return jsonify({"error": "already_registered"}), 409
 
-    # Verify name matches registry
-    registry_name_val = registry_name(str(aadhar))
-    if not registry_name_val or registry_name_val.strip().lower() != name.strip().lower():
-        return jsonify({"error": "name_mismatch", "message": "Name does not match registry"}), 400
-
-    # process like /api/register
     ensure_data_dir()
-    collected = []
-    for data_url in images[:5]:  # Still limit to 5 max
-        img = decode_base64_image(data_url)
-        if img is None:
-            continue
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-        for (x, y, w, h) in faces:
-            crop_img = img[y:y+h, x:x+w]
-            resized_img = cv2.resize(crop_img, (50, 50))
-            collected.append(resized_img)
-            break
-    if not collected:
-        return jsonify({"error": "no faces detected"}), 400
 
-    new_faces = np.asarray(collected)
-    new_faces = new_faces.reshape((len(collected), -1))
+    # Add voter to the dataset
+    try:
+        # Check if Aadhar already exists in dataset
+        exists_in_dataset = False
+        if os.path.exists(REGISTRY_CSV):
+            with open(REGISTRY_CSV, "r", newline="", encoding="utf-8") as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    if row and row[0] == str(aadhar):
+                        exists_in_dataset = True
+                        break
+        
+        # Add to dataset if not already present
+        if not exists_in_dataset:
+            with open(REGISTRY_CSV, "a", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow([str(aadhar), str(name)])
+    except Exception as e:
+        return jsonify({"error": "failed_to_add_to_dataset", "message": str(e)}), 500
 
     # Save name profile
     profiles = load_profiles()
-    if name:
-        profiles[str(aadhar)] = {"name": str(name)}
-        save_profiles(profiles)
+    profiles[str(aadhar)] = {"name": str(name)}
+    save_profiles(profiles)
 
-    if not os.path.exists(NAMES_PATH):
-        names = [aadhar] * len(collected)
-        with open(NAMES_PATH, "wb") as f:
-            pickle.dump(names, f)
-    else:
-        with open(NAMES_PATH, "rb") as f:
-            names = pickle.load(f)
-        names = names + [aadhar] * len(collected)
-        with open(NAMES_PATH, "wb") as f:
-            pickle.dump(names, f)
-
-    if not os.path.exists(FACES_PATH):
-        with open(FACES_PATH, "wb") as f:
-            pickle.dump(new_faces, f)
-    else:
-        with open(FACES_PATH, "rb") as f:
-            faces = pickle.load(f)
-        faces = np.append(faces, new_faces, axis=0)
-        with open(FACES_PATH, "wb") as f:
-            pickle.dump(faces, f)
-
-    append_audit("admin_register", {"aadhar": str(aadhar), "name": str(name), "frames": len(collected)})
-    return jsonify({"ok": True, "added": len(collected)})
+    append_audit("admin_register", {"aadhar": str(aadhar), "name": str(name)})
+    return jsonify({"ok": True, "message": f"Voter {name} registered successfully"})
 
 
 @app.route("/api/admin/verify", methods=["POST"])
@@ -791,6 +848,45 @@ def registry_lookup(aadhar: str):
     return jsonify({"registry": reg, "registryName": nm})
 
 
+@app.route("/api/registry-age/<aadhar>", methods=["GET"])
+def registry_age_lookup(aadhar: str):
+    """Get age from the registry dataset"""
+    if not os.path.exists(REGISTRY_CSV):
+        return jsonify({"age": None})
+    
+    try:
+        with open(REGISTRY_CSV, "r", newline="", encoding="utf-8") as f:
+            r = csv.reader(f)
+            header = next(r, None)
+            if not header or len(header) < 3:
+                return jsonify({"age": None})
+            
+            # Find age column
+            age_idx = None
+            for i, col in enumerate(header):
+                if "age" in col.lower():
+                    age_idx = i
+                    break
+            
+            if age_idx is None:
+                return jsonify({"age": None})
+            
+            for row in r:
+                if not row or len(row) <= age_idx:
+                    continue
+                aid = str(row[0]).strip()
+                if aid == str(aadhar):
+                    try:
+                        age = int(row[age_idx])
+                        return jsonify({"age": age})
+                    except (ValueError, IndexError):
+                        return jsonify({"age": None})
+    except Exception:
+        pass
+    
+    return jsonify({"age": None})
+
+
 @app.route("/api/validate-registry", methods=["POST"])
 def validate_registry_entry():
     """Validate Aadhar and name against registry before allowing registration"""
@@ -810,6 +906,78 @@ def validate_registry_entry():
         return jsonify({"error": "name_mismatch", "message": "Name does not match registry"}), 400
     
     return jsonify({"valid": True, "registryName": registry_name_val})
+
+
+@app.route("/api/admin/parties", methods=["GET"])
+def get_parties():
+    """Get current list of parties/candidates"""
+    if not require_admin():
+        return jsonify({"error": "unauthorized"}), 401
+    try:
+        config = json.loads(open("data/parties.json", "r").read()) if os.path.exists("data/parties.json") else {"parties": ["BJP", "CONGRESS", "AAP", "NOTA"]}
+        return jsonify(config)
+    except Exception:
+        return jsonify({"parties": ["BJP", "CONGRESS", "AAP", "NOTA"]})
+
+
+@app.route("/api/admin/parties", methods=["POST"])
+def add_party():
+    """Add a new party/candidate"""
+    if not require_admin():
+        return jsonify({"error": "unauthorized"}), 401
+    
+    data = request.get_json(silent=True) or {}
+    party_name = data.get("name", "").strip()
+    if not party_name:
+        return jsonify({"error": "Party name is required"}), 400
+    
+    try:
+        if os.path.exists("data/parties.json"):
+            with open("data/parties.json", "r") as f:
+                config = json.load(f)
+        else:
+            config = {"parties": ["BJP", "CONGRESS", "AAP", "NOTA"]}
+        
+        if party_name not in config["parties"]:
+            config["parties"].append(party_name)
+            with open("data/parties.json", "w") as f:
+                json.dump(config, f)
+            append_audit("add_party", {"party": party_name})
+            return jsonify({"ok": True, "message": f"Party '{party_name}' added successfully"})
+        else:
+            return jsonify({"error": "Party already exists"}), 409
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/parties", methods=["DELETE"])
+def remove_party():
+    """Remove a party/candidate"""
+    if not require_admin():
+        return jsonify({"error": "unauthorized"}), 401
+    
+    data = request.get_json(silent=True) or {}
+    party_name = data.get("name", "").strip()
+    if not party_name:
+        return jsonify({"error": "Party name is required"}), 400
+    
+    try:
+        if os.path.exists("data/parties.json"):
+            with open("data/parties.json", "r") as f:
+                config = json.load(f)
+        else:
+            config = {"parties": ["BJP", "CONGRESS", "AAP", "NOTA"]}
+        
+        if party_name in config["parties"]:
+            config["parties"].remove(party_name)
+            with open("data/parties.json", "w") as f:
+                json.dump(config, f)
+            append_audit("remove_party", {"party": party_name})
+            return jsonify({"ok": True, "message": f"Party '{party_name}' removed successfully"})
+        else:
+            return jsonify({"error": "Party not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
