@@ -18,16 +18,32 @@
 
     <main>
       <section class="panel">
-        <h2>Voting Wizard</h2>
+        <h2>Voting System</h2>
         <div class="wizard">
           <div class="steps">
-            <div class="step active" data-step="1">1. Identify</div>
-            <div class="step" data-step="2">2. Capture Face (New)</div>
-            <div class="step" data-step="3">3. Verify/Details</div>
-            <div class="step" data-step="4">4. Choose</div>
-            <div class="step" data-step="5">5. Confirm</div>
+            <div class="step active" data-step="0">1. Login</div>
+            <div class="step" data-step="1">2. Identify</div>
+            <div class="step" data-step="2">3. Capture Face (New)</div>
+            <div class="step" data-step="3">4. Verify/Details</div>
+            <div class="step" data-step="4">5. Choose</div>
+            <div class="step" data-step="5">6. Confirm</div>
           </div>
-          <div class="step-content" id="step-1">
+          <div class="step-content" id="step-0">
+            <p>Please login to access the voting system.</p>
+            <div class="row">
+              <label for="voter-id">Voter ID</label>
+              <input id="voter-id" placeholder="Enter your voter ID" />
+            </div>
+            <div class="row">
+              <label for="voter-password">Password</label>
+              <input id="voter-password" type="password" placeholder="Enter your password" />
+            </div>
+            <div class="controls">
+              <button id="btn-login">Login</button>
+              <small id="login-status"></small>
+            </div>
+          </div>
+          <div class="step-content" id="step-1" hidden>
             <p>Center your face in the frame and press Identify.</p>
             <video id="video" autoplay playsinline></video>
             <canvas id="canvas" width="640" height="480" hidden></canvas>
@@ -107,7 +123,13 @@
 
       <section class="panel">
         <h2>Help</h2>
-        <p>Follow the steps. If face ID fails, you can type your Aadhar and proceed.</p>
+        <p>
+          Follow the steps. 
+          If face ID fails
+          you can type your Aadhar and proceed.</p>
+        <div class="controls">
+          <button id="btn-logout">Logout</button>
+        </div>
       </section>
 
     </main>

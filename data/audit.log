@@ -78,3 +78,12 @@
 {"ts": "2025-09-28T13:24:06.958773Z", "user": "nivank", "event": "admin_register", "detail": {"aadhar": "998877665544", "name": "nerve"}}
 {"ts": "2025-09-28T13:24:34.241488Z", "user": "nivank", "event": "admin_verify", "detail": {"aadhar": "998877665544", "name": "nerve", "exists": true, "name_match": true, "registry": true, "registry_name_match": true, "predicted": null, "voted": false}}
 {"ts": "2025-09-28T13:24:46.757703Z", "user": null, "event": "admin_logout", "detail": {}}
+{"ts": "2025-09-28T16:46:59.013084Z", "user": null, "event": "register", "detail": {"aadhar": "155376168672", "frames": 3}}
+{"ts": "2025-09-28T16:47:04.931828Z", "user": null, "event": "vote_cast", "detail": {"voter": "155376168672", "party": "BJP", "date": "28-09-2025", "time": "22:17-04"}}
+{"ts": "2025-09-28T16:47:29.347831Z", "user": "nivank", "event": "admin_login", "detail": {"user": "nivank"}}
+{"ts": "2025-09-28T16:49:05.959768Z", "user": "nivank", "event": "vote_cast", "detail": {"voter": "yh", "party": "nivank", "date": "28-09-2025", "time": "22:19-05"}}
+{"ts": "2025-09-28T17:11:09.739858Z", "user": "nivank", "event": "voter_login_failed", "detail": {"voter_id": "test"}}
+{"ts": "2025-09-28T17:11:25.977487Z", "user": "nivank", "event": "voter_login", "detail": {"voter_id": "test"}}
+{"ts": "2025-09-28T17:11:37.263075Z", "user": "nivank", "event": "voter_logout", "detail": {"voter_id": "test"}}
+{"ts": "2025-09-28T17:11:47.984512Z", "user": "nivank", "event": "voter_login", "detail": {"voter_id": "test"}}
+{"ts": "2025-09-28T17:11:50.107727Z", "user": "nivank", "event": "voter_logout", "detail": {"voter_id": "test"}}

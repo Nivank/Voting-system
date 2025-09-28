@@ -32,7 +32,13 @@ REGISTRY_CSV = os.path.join(DATA_DIR, "fake_aadhaar_dataset_custom.csv")
 
 USERS = {
     "nivank": "abhivyakti",
-    "superior": "ashwathama",
+    "cursed": "ashwathama",
+}
+
+# Voter credentials (in production, this should be in a database)
+VOTER_CREDENTIALS = {
+    "shakuni": "krutghna",
+    "test": "test123"
 }
 
 
@@ -673,6 +679,42 @@ def admin_logout():
 def admin_me():
     user = session.get("admin_user")
     return jsonify({"user": user})
+
+
+@app.route("/api/voter/login", methods=["POST"])
+def voter_login():
+    """Voter login endpoint"""
+    data = request.get_json(silent=True) or {}
+    voter_id = data.get("voterId", "").strip()
+    password = data.get("password", "").strip()
+    
+    if not voter_id or not password:
+        return jsonify({"error": "voter_id and password are required"}), 400
+    
+    if VOTER_CREDENTIALS.get(voter_id) == password:
+        session["voter_id"] = voter_id
+        append_audit("voter_login", {"voter_id": voter_id})
+        return jsonify({"ok": True, "message": "Login successful"})
+    else:
+        append_audit("voter_login_failed", {"voter_id": voter_id})
+        return jsonify({"error": "invalid_credentials"}), 401
+
+
+@app.route("/api/voter/logout", methods=["POST"])
+def voter_logout():
+    """Voter logout endpoint"""
+    voter_id = session.get("voter_id")
+    session.pop("voter_id", None)
+    if voter_id:
+        append_audit("voter_logout", {"voter_id": voter_id})
+    return jsonify({"ok": True})
+
+
+@app.route("/api/voter/me", methods=["GET"])
+def voter_me():
+    """Get current voter session"""
+    voter_id = session.get("voter_id")
+    return jsonify({"voter_id": voter_id})
 
 
 @app.route("/api/profile/<aadhar>", methods=["GET"])

@@ -5,6 +5,9 @@ const aadharEl = document.getElementById('aadhar');
 const nameEl = document.getElementById('name');
 const ageDisplayEl = document.getElementById('age-display');
 const registryAgeEl = document.getElementById('registry-age');
+const voterIdEl = document.getElementById('voter-id');
+const voterPasswordEl = document.getElementById('voter-password');
+const loginStatusEl = document.getElementById('login-status');
 const framesTotalEl = document.getElementById('framesTotal');
 const everyNEl = document.getElementById('everyN');
 const regStatusEl = document.getElementById('reg-status');
@@ -23,6 +26,7 @@ let lastLabel = null;
 let inactivityTimer = null;
 let capturedImages = [];
 let lastCapturedFace = null; // Store the last captured face for display
+let isLoggedIn = false; // Track login status
 
 async function init() {
   try {
@@ -126,6 +130,62 @@ async function checkVoteStatus(voterId) {
     return { exists: false };
   }
 }
+
+// Voter login functionality
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const voterId = voterIdEl.value.trim();
+  const password = voterPasswordEl.value.trim();
+  
+  if (!voterId || !password) {
+    loginStatusEl.textContent = 'Please enter both voter ID and password';
+    return;
+  }
+  
+  loginStatusEl.textContent = 'Logging in...';
+  
+  try {
+    const response = await fetch('/api/voter/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voterId, password })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      isLoggedIn = true;
+      loginStatusEl.textContent = 'Login successful!';
+      toast('Login successful! Proceeding to identification...');
+      goToStep(1);
+    } else {
+      loginStatusEl.textContent = result.error || 'Login failed';
+      toast(result.error || 'Login failed');
+    }
+  } catch (e) {
+    loginStatusEl.textContent = 'Login failed';
+    toast('Login failed: ' + e.message);
+  }
+});
+
+// Logout functionality
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  try {
+    const response = await fetch('/api/voter/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (response.ok) {
+      isLoggedIn = false;
+      toast('Logged out successfully');
+      resetWizard();
+    } else {
+      toast('Logout failed');
+    }
+  } catch (e) {
+    toast('Logout failed: ' + e.message);
+  }
+});
 
 document.getElementById('btn-predict').addEventListener('click', async () => {
   const dataUrl = snapshotDataUrl();
@@ -318,13 +378,20 @@ document.getElementById('btn-vote').addEventListener('click', async () => {
 
 // Wizard navigation
 function goToStep(n){
-  [1,2,3,4,5].forEach(i => {
+  [0,1,2,3,4,5].forEach(i => {
     const step = document.querySelector(`.step[data-step="${i}"]`);
     const content = document.getElementById(`step-${i}`);
     if (!step || !content) return;
     if (i === n) { step.classList.add('active'); content.hidden = false; }
     else { step.classList.remove('active'); content.hidden = true; }
   });
+  
+  // Check login requirement for steps 1-5
+  if (n >= 1 && n <= 5 && !isLoggedIn) {
+    toast('Please login first');
+    goToStep(0);
+    return;
+  }
   if (n === 5) {
     confirmIdEl.textContent = aadharEl.value.trim() || lastLabel || '-';
     confirmNameEl.textContent = nameEl.value.trim() || '-';
@@ -420,7 +487,11 @@ function resetWizard(){
   voteStatusEl.textContent = '';
   capturedImages = [];
   lastCapturedFace = null;
-  goToStep(1);
+  isLoggedIn = false;
+  voterIdEl.value = '';
+  voterPasswordEl.value = '';
+  loginStatusEl.textContent = '';
+  goToStep(0);
 }
 
 function returnToFaceDetection() {
