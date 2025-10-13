@@ -87,3 +87,10 @@
 {"ts": "2025-09-28T17:11:37.263075Z", "user": "nivank", "event": "voter_logout", "detail": {"voter_id": "test"}}
 {"ts": "2025-09-28T17:11:47.984512Z", "user": "nivank", "event": "voter_login", "detail": {"voter_id": "test"}}
 {"ts": "2025-09-28T17:11:50.107727Z", "user": "nivank", "event": "voter_logout", "detail": {"voter_id": "test"}}
+{"ts": "2025-10-05T18:51:00.060762Z", "user": null, "event": "voter_login", "detail": {"voter_id": "shakuni"}}
+{"ts": "2025-10-13T14:33:48.958778Z", "user": null, "event": "voter_login_failed", "detail": {"voter_id": "nivank"}}
+{"ts": "2025-10-13T14:34:05.022912Z", "user": null, "event": "voter_login_failed", "detail": {"voter_id": "nivank"}}
+{"ts": "2025-10-13T14:35:07.421731Z", "user": null, "event": "voter_login_failed", "detail": {"voter_id": "nivank"}}
+{"ts": "2025-10-13T14:35:29.013592Z", "user": null, "event": "voter_login", "detail": {"voter_id": "shakuni"}}
+{"ts": "2025-10-13T14:39:03.270156Z", "user": null, "event": "vote_cast", "detail": {"voter": "59244437191", "party": "nivank", "date": "13-10-2025", "time": "20:09-03"}}
+{"ts": "2025-10-13T14:39:31.833861Z", "user": "nivank", "event": "admin_login", "detail": {"user": "nivank"}}

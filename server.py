@@ -31,8 +31,19 @@ AUDIT_LOG = os.path.join(DATA_DIR, "audit.log")
 REGISTRY_CSV = os.path.join(DATA_DIR, "fake_aadhaar_dataset_custom.csv")
 
 USERS = {
-    "
+      "nivank": "abhivyakti",
+    "cursed": "ashwathama",
 }
+
+# Voter credentials (in production, this should be in a database)
+VOTER_CREDENTIALS = {
+    "shakuni": "krutghna",
+    "test": "test123"
+}
+    
+
+    
+
 
 
 def ensure_data_dir() -> None:
