@@ -43,4 +43,4 @@ Usage
 Contact
 
 GitHub: https://github.com/Nivank 
-Email: nivankn@gmail.com.com
+
